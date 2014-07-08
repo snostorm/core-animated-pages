@@ -1,0 +1,161 @@
+<!--
+Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link href="../../polymer/polymer.html" rel="import">
+<link href="../../core-animation/web-animations.html" rel="import">
+<link href="../../core-style/core-style.html" rel="import">
+<link href="../../core-transition/core-transition.html" rel="import">
+
+<!--
+
+`core-transition-pages` represents a page transition, which may include CSS and/or
+script. It will look for a `core-style` element with the same `id` to install in the
+scope of the `core-animated-pages` that's using the transition.
+
+Example:
+
+    <core-style id="fooTransition">
+        // some CSS here
+    </core-style>
+    <core-transition-pages id="fooTransition"></core-transition-pages>
+
+There are three stages to a page transition:
+
+1. `prepare`: Called to set up the incoming and outgoing pages to the "before" state,
+  e.g. setting the incoming page to `opacity: 0` for `cross-fade` or find and
+  measure hero elements for `hero-transition`.
+
+2. `go`: Called to run the transition. For CSS-based transitions, this generally
+  applies a CSS `transition` property.
+
+3. `complete`: Called when the elements are finished transitioning.
+
+See the individual transition documentation for specific details.
+
+@element core-transition-pages
+@status beta
+@homepage github.io
+-->
+<!--
+Fired when the transition completes.
+
+@event core-transitionend
+-->
+<polymer-element name="core-transition-pages" extends="core-transition">
+<script>
+
+(function () {
+
+// create some basic transition styling data.
+var transitions = CoreStyle.g.transitions = CoreStyle.g.transitions || {};
+transitions.duration = 500;
+transitions.heroDelay = 50;
+transitions.scaleDelay = 500;
+transitions.cascadeFadeDuration = 250;
+
+var hasShadowDOMPolyfill = window.ShadowDOMPolyfill;
+
+Polymer({
+
+  publish: {
+    targetAttribute: '',
+    effect: null,
+    timing: null
+  },
+
+  /**
+   * True if this transition is complete.
+   *
+   * @attribute completed
+   * @type boolean
+   * @default false
+   */
+  completed: false,
+
+  prepare: function(scope, options) {
+    // this.boundCompleteFn = this.complete.bind(this, scope);
+    // if (this.scopeClass) {
+    //   scope.classList.add(this.scopeClass);
+    // }
+  },
+
+  findTargets: function(scope) {
+    if (!this.targetAttribute) {
+      return [];
+    }
+    return this.findAllInShadows(scope, '[' + this.targetAttribute + ']');
+  },
+
+  // carefully look into ::shadow with polyfill specific hack
+  findInShadows: function(node, selector) {
+    return node.querySelector(selector) || (hasShadowDOMPolyfill ? 
+        Platform.queryAllShadows(node, selector) :
+        node.querySelector('::shadow ' + selector));
+  },
+
+  findAllInShadows: function(node, selector) {
+    if (hasShadowDOMPolyfill) {
+      var nodes = node.querySelectorAll(selector).array();
+      var shadowNodes = Platform.queryAllShadows(node, selector, true);
+      return nodes.concat(shadowNodes);
+    } else {
+      return node.querySelectorAll(selector).array().concat(node.shadowRoot ? node.shadowRoot.querySelectorAll(selector).array() : []);
+    }
+  },
+
+  go: function(scope, options) {
+    this.completed = false;
+
+    var targets = this.findTargets(scope);
+    var anims = [];
+    targets.forEach(function(t) {
+      anims.push(new Animation(target, this.effect, this.timing));
+    }.bind(this));
+
+    this.player = document.timeline.play(new AnimationGroup(anims));
+    this.player.onfinish = this.complete.bind(this, scope);
+  },
+
+  setup: function(scope) {
+    // if (!scope._pageTransitionStyles) {
+    //   scope._pageTransitionStyles = {};
+    // }
+
+    // var name = this.calcStyleName();
+    
+    // if (!scope._pageTransitionStyles[name]) {
+    //   this.installStyleInScope(scope, name);
+    //   scope._pageTransitionStyles[name] = true;
+    // }
+  },
+
+  ensureComplete: function(scope) {
+    if (this.completed) {
+      return;
+    }
+    this.player.finish();
+    this.complete(scope);
+  },
+
+  complete: function(scope) {
+    if (this.completed) {
+      return;
+    }
+    // TODO(yvonne): hack, need to manage completion better
+    this.completed = true;
+    this.player = null;
+    this.fire('core-transitionend', this, scope);
+  }
+
+});
+
+})();
+
+</script>
+</polymer-element>
