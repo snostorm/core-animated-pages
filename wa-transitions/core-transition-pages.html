@@ -135,6 +135,20 @@ Polymer({
     // }
   },
 
+  calcStyleName: function() {
+    return this.id || this.localName;
+  },
+
+  installStyleInScope: function(scope, id) {
+    if (!scope.shadowRoot) {
+      scope.createShadowRoot().innerHTML = '<content></content>';
+    }
+    var root = scope.shadowRoot;
+    var scopeStyle = document.createElement('core-style');
+    root.insertBefore(scopeStyle, root.firstChild);
+    scopeStyle.applyRef(id);
+  },
+
   ensureComplete: function(scope) {
     if (this.completed) {
       return;
