@@ -54,6 +54,9 @@ Fired when the transition completes.
 
 // create some basic transition styling data.
 var transitions = CoreStyle.g.transitions = CoreStyle.g.transitions || {};
+
+transitions.easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
+
 transitions.duration = 500;
 transitions.heroDelay = 50;
 transitions.scaleDelay = 500;
@@ -69,20 +72,25 @@ Polymer({
     timing: null
   },
 
-  /**
-   * True if this transition is complete.
-   *
-   * @attribute completed
-   * @type boolean
-   * @default false
-   */
-  completed: false,
-
   prepare: function(scope, options) {
     // this.boundCompleteFn = this.complete.bind(this, scope);
     // if (this.scopeClass) {
     //   scope.classList.add(this.scopeClass);
     // }
+    var targets = this.findTargets(scope);
+    if (targets.length > 1) {
+      var anims = [];
+      targets.forEach(function(t) {
+        anims.push(new Animation(target, this.effect, this.timing));
+      }.bind(this));
+      this.animation = new AnimationGroup(anims);
+    } else if (targets.length === 1) {
+      this.animation = new Animation(targets[0], this.effect, this.timing);
+    } else {
+      this.animation = null;
+    }
+
+    return this.animation;
   },
 
   findTargets: function(scope) {
@@ -110,15 +118,7 @@ Polymer({
   },
 
   go: function(scope, options) {
-    this.completed = false;
-
-    var targets = this.findTargets(scope);
-    var anims = [];
-    targets.forEach(function(t) {
-      anims.push(new Animation(target, this.effect, this.timing));
-    }.bind(this));
-
-    this.player = document.timeline.play(new AnimationGroup(anims));
+    this.player = document.timeline.play(this.animation);
     this.player.onfinish = this.complete.bind(this, scope);
   },
 
@@ -149,20 +149,16 @@ Polymer({
     scopeStyle.applyRef(id);
   },
 
-  ensureComplete: function(scope) {
-    if (this.completed) {
-      return;
-    }
-    this.player.finish();
-    this.complete(scope);
-  },
+  // ensureComplete: function(scope) {
+  //   if (this.completed) {
+  //     return;
+  //   }
+  //   this.player.finish();
+  //   this.complete(scope);
+  // },
 
   complete: function(scope) {
-    if (this.completed) {
-      return;
-    }
-    // TODO(yvonne): hack, need to manage completion better
-    this.completed = true;
+    this.animation = null;
     this.player = null;
     this.fire('core-transitionend', this, scope);
   }

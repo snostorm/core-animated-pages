@@ -295,6 +295,51 @@ Fired when a page transition completes.
     },
 
     applyTransition: function(src, dst) {
+      if (this.transitioning.indexOf(src) === -1) {
+        this.transitioning.push(src);
+      }
+      if (this.transitioning.indexOf(dst) === -1) {
+        this.transitioning.push(dst);
+      }
+
+      // force src, dst to display
+      src.setAttribute('animate', '');
+      dst.setAttribute('animate', '');
+
+      dst.style.visibility = 'hidden';
+
+      // force layout before preparing transition so we can measure.
+      src.offsetTop;
+
+      //
+      // prepare transition
+      var anims = [];
+      this._transitionElements.forEach(function(transition) {
+        if (transition.prepare(this, {
+          src: src,
+          dst: dst
+        })) {
+          anims.push(transition.animation);
+        }
+      }, this);
+
+      // no transition
+      if (!anims.length) {
+        this.applySelection(dst, true);
+        this.applySelection(src, false);
+        this.fire('core-animated-pages-transition-end');
+        return;
+      }
+
+      console.log('play!', anims);
+
+      anims.push(new Animation(dst, [{'visibility': 'visible'}, {'visibility': 'visible'}], {fill: 'forwards', duration: CoreStyle.g.transitions.duration}));
+
+      // start transition
+      this.player = document.timeline.play(new AnimationGroup(anims));
+      this.player.onfinish = this.complete.bind(this, src, dst);
+
+      /*
       if (this.animating) {
         this.cancelAsync(this.animating);
         this.animating = null;
@@ -341,41 +386,68 @@ Fired when a page transition completes.
       } else {
         this.animating = this.async(this.complete.bind(this), null, 5000);
       }
+      */
     },
 
-    complete: function() {
-      if (this.animating) {
-        this.cancelAsync(this.animating);
-        this.animating = null;
-      }
+    complete: function(src, dst) {
+      console.log('complete');
+
+      // complete() is called top-down
+      this._transitionElements.forEach(function(transition) {
+        transition.complete(this);
+      }, this);
+
+      //
+      // apply selection
+      this.applySelection(dst, true);
+      this.applySelection(src, false);
 
       this.transitioning.forEach(function(t) {
         t.removeAttribute('animate');
       });
       this.transitioning = [];
 
-      this._transitionElements.forEach(function(transition) {
-        transition.ensureComplete(this);
-      }, this);
+      // need to force layout before removing the effect so we don't get an extra
+      // frame of the "before" state.
+      src.offsetTop;
+
+      this.player.cancel();
+      this.player = null;
 
       this.fire('core-animated-pages-transition-end');
+
+      // if (this.animating) {
+      //   this.cancelAsync(this.animating);
+      //   this.animating = null;
+      // }
+
+      // this.transitioning.forEach(function(t) {
+      //   t.removeAttribute('animate');
+      // });
+      // this.transitioning = [];
+
+      // this._transitionElements.forEach(function(transition) {
+      //   transition.ensureComplete(this);
+      // }, this);
+
+      // this.fire('core-animated-pages-transition-end');
     },
     
-    transitionEnd: function(e) {
-      if (this.transitioning.length) {
-        var completed = true;
-        this._transitionElements.forEach(function(transition) {
-          if (!transition.completed) {
-            completed = false;
-          }
-        });
-        if (completed) {
-          this.job('transitionWatch', function() {
-            this.complete();
-          }, 100);
-        }
-      }
-    },
+    // transitionEnd: function(e) {
+    //   if (this.transitioning.length) {
+    //     var completed = true;
+    //     this._transitionElements.forEach(function(transition) {
+    //       if (!transition.completed) {
+    //         completed = false;
+    //       }
+    //     });
+    //     if (completed) {
+    //       this.job('transitionWatch', function() {
+    //         this.complete();
+    //       }, 100);
+    //     }
+    //   }
+    // },""
 
     selectedChanged: function(old) {
       this.lastSelected = old;

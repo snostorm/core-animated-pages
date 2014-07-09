@@ -106,38 +106,11 @@ You can configure the duration of the hero transition with the global variable
   Polymer({
 
     go: function(scope, options) {
-      this.completed = false;
+      if (!this.animation) {
+        return;
+      }
 
-      var duration = options && options.duration || 
-          (CoreStyle.g.transitions.heroDuration || 
-          CoreStyle.g.transitions.duration);
-
-      var anims = [];
-      scope._heroes.forEach(function(h) {
-        var d = h.h0.hasAttribute('hero-delayed') ? CoreStyle.g.transitions.heroDelay : 0;
-
-        var dl = h.b0.left - h.b1.left;
-        var dt = h.b0.top - h.b1.top;
-        var sw = h.b0.width / h.b1.width;
-        var sh = h.b0.height / h.b1.height;
-
-        anims.push(new Animation(h.h1, [
-          {'transform': 'translate(' + dl + 'px,' + dt + 'px)' + ' scale(' + sw + ',' + sh + ')', 'border-radius': h.r0, 'z-index': 10000},
-          {'transform': 'none', 'border-radius': h.r1, 'z-index': 10000}
-        ], {
-          duration: duration,
-          easing: options.easing,
-          delay: d
-        }));
-        anims.push(new Animation(h.h0, [
-          {'visibility': 'hidden'},
-          {'visibility': 'hidden'}
-        ], {
-          duration: duration
-        }));
-      }.bind(this));
-
-      this.player = document.timeline.play(new AnimationGroup(anims));
+      this.player = document.timeline.play(this.animation);
       this.player.onfinish = this.complete.bind(this, scope);
 
       if (!scope._heroes.length) {
@@ -148,12 +121,7 @@ You can configure the duration of the hero transition with the global variable
     prepare: function(scope, options) {
       this.super(arguments);
       var src = options.src, dst = options.dst;
-
-      if (scope._heroes && scope._heroes.length) {
-        this.ensureComplete(scope);
-      } else {
-        scope._heroes = [];
-      }
+      var anims = [];
 
       // FIXME(yvonne): basic support for nested pages.
       // Look for heroes in the light DOM and one level of shadow DOM of the src and dst,
@@ -175,8 +143,9 @@ You can configure the duration of the hero transition with the global variable
       for (var i=0, h0; h0=h$[i]; i++) {
         var v = h0.getAttribute('hero-id');
         var ds = '[hero][hero-id="' + v + '"]';
-        var h1 = this.findInShadows(dst, ds);
 
+        // Find matching hero in dst
+        var h1 = this.findInShadows(dst, ds);
         if (!h1 && dst.selectedItem) {
           h1 = this.findInShadows(dst.selectedItem, ds);
         }
@@ -184,6 +153,8 @@ You can configure the duration of the hero transition with the global variable
         // console.log('src', src);
         // console.log('dst', dst, dst.selectedItem);
         // console.log(v, h0, h1);
+
+        // Measure
         if (v && h1) {
           var c0 = getComputedStyle(h0);
           var c1 = getComputedStyle(h1);
@@ -201,18 +172,42 @@ You can configure the duration of the hero transition with the global variable
           var sw = h.b0.width / h.b1.width;
           var sh = h.b0.height / h.b1.height;
 
+          var duration = CoreStyle.g.transitions.heroDuration || CoreStyle.g.transitions.duration;
+          var delay = h.h0.hasAttribute('hero-delayed') ? CoreStyle.g.transitions.heroDelay : 0;
+
           h.h1.style[TRANSFORM_NAME + 'Origin'] = '0 0';
 
-          scope._heroes.push(h);
+          console.log(dl, dt, sw, sh);
+
+          // Transform the dst hero to dimensions of src
+          anims.push(new Animation(h.h1, [
+            {'transform': 'translate(' + dl + 'px,' + dt + 'px)' + ' scale(' + sw + ',' + sh + ')', 'border-radius': h.r0, 'z-index': 10000},
+            {'transform': 'none', 'border-radius': h.r1, 'z-index': 10000}
+          ], {
+            duration: duration,
+            easing: options.easing,
+            delay: delay,
+            fill: 'forwards'
+          }));
+
+          // Hide the src hero
+          anims.push(new Animation(h.h0, [
+            {'visibility': 'hidden'},
+            {'visibility': 'hidden'}
+          ], {
+            duration: duration,
+            delay: delay,
+            fill: 'forwards'
+          }));
         }
       }
-    },
 
-    complete: function(scope, target) {
-      if (scope._heroes) {
-        scope._heroes = [];
+      if (anims.length) {
+        this.animation = new AnimationGroup(anims);
+      } else {
+        this.animation = null;
       }
-      this.super(arguments);
+      return this.animation;
     }
 
   });
