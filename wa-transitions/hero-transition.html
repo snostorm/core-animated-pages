@@ -177,8 +177,6 @@ You can configure the duration of the hero transition with the global variable
 
           h.h1.style[TRANSFORM_NAME + 'Origin'] = '0 0';
 
-          console.log(dl, dt, sw, sh);
-
           // Transform the dst hero to dimensions of src
           anims.push(new Animation(h.h1, [
             {'transform': 'translate(' + dl + 'px,' + dt + 'px)' + ' scale(' + sw + ',' + sh + ')', 'border-radius': h.r0, 'z-index': 10000},
@@ -187,7 +185,7 @@ You can configure the duration of the hero transition with the global variable
             duration: duration,
             easing: options.easing,
             delay: delay,
-            fill: 'forwards'
+            fill: 'both'
           }));
 
           // Hide the src hero
@@ -197,7 +195,7 @@ You can configure the duration of the hero transition with the global variable
           ], {
             duration: duration,
             delay: delay,
-            fill: 'forwards'
+            fill: 'both'
           }));
         }
       }

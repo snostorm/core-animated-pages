@@ -105,7 +105,7 @@
       }
     </style>
 
-    <core-animated-pages selected="{{page}}" transitions="hero-transition" on-core-animated-pages-transition-end="{{complete}}">
+    <core-animated-pages selected="{{page}}" transitions="hero-transition cross-fade" on-core-animated-pages-transition-end="{{complete}}">
 
       <section>
 
@@ -133,7 +133,7 @@
           <div class="card-bg" fit hero-id="{{selectedAlbum.artist}}-{{selectedAlbum.album}}" hero></div>
           <div class="card-left" style="background:{{selectedAlbum.color}};" hero-id="{{selectedAlbum.artist}}-{{selectedAlbum.album}}-art" hero></div>
           <div class="card-right" flex>
-            <div layout horizontal center>
+            <div layout horizontal center cross-fade delayed>
               <div>
                 <div class="card-icon" style="background:{{selectedAlbum.color}};"></div>
               </div>

@@ -1,6 +1,7 @@
 <link href="../core-selector/core-selector.html" rel="import">
 
 <link href="wa-transitions/hero-transition.html" rel="import">
+<link href="wa-transitions/cross-fade.html" rel="import">
 
 <!--
 
@@ -289,10 +290,10 @@ Fired when a page transition completes.
       return this.tmeta.byId(transitionId);
     },
 
-    selectionSelect: function(e, detail) {
-      this.updateSelectedItem();
-      // Wait to call applySelection when we run the transition
-    },
+    // selectionSelect: function(e, detail) {
+    //   this.updateSelectedItem();
+    //   // Wait to call applySelection when we run the transition
+    // },
 
     applyTransition: function(src, dst) {
       if (this.transitioning.indexOf(src) === -1) {
@@ -325,13 +326,11 @@ Fired when a page transition completes.
 
       // no transition
       if (!anims.length) {
-        this.applySelection(dst, true);
-        this.applySelection(src, false);
+        // this.applySelection(dst, true);
+        // this.applySelection(src, false);
         this.fire('core-animated-pages-transition-end');
         return;
       }
-
-      console.log('play!', anims);
 
       anims.push(new Animation(dst, [{'visibility': 'visible'}, {'visibility': 'visible'}], {fill: 'forwards', duration: CoreStyle.g.transitions.duration}));
 
@@ -389,9 +388,8 @@ Fired when a page transition completes.
       */
     },
 
-    complete: function(src, dst) {
-      console.log('complete');
-
+    complete: function(src, dst, e) {
+      console.log('complete', e);
       // complete() is called top-down
       this._transitionElements.forEach(function(transition) {
         transition.complete(this);
@@ -399,8 +397,8 @@ Fired when a page transition completes.
 
       //
       // apply selection
-      this.applySelection(dst, true);
-      this.applySelection(src, false);
+      // this.applySelection(dst, true);
+      // this.applySelection(src, false);
 
       this.transitioning.forEach(function(t) {
         t.removeAttribute('animate');
@@ -458,13 +456,13 @@ Fired when a page transition completes.
       this.super(arguments);
 
       if (!oldItem) {
-        this.applySelection(this.selectedItem, true);
+        // this.applySelection(this.selectedItem, true);
         return;
       }
 
       if (this.hasAttribute('no-transition') || !this._transitionElements || !this._transitionElements.length) {
-        this.applySelection(oldItem, false);
-        this.applySelection(this.selectedItem, true);
+        // this.applySelection(oldItem, false);
+        // this.applySelection(this.selectedItem, true);
         return;
       }
 

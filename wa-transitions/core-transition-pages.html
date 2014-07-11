@@ -62,13 +62,16 @@ transitions.heroDelay = 50;
 transitions.scaleDelay = 500;
 transitions.cascadeFadeDuration = 250;
 
+transitions.xfadeDelay = 5000;
+
 var hasShadowDOMPolyfill = window.ShadowDOMPolyfill;
 
 Polymer({
 
   publish: {
     targetAttribute: '',
-    effect: null,
+    srcEffect: null,
+    dstEffect: null,
     timing: null
   },
 
@@ -77,15 +80,21 @@ Polymer({
     // if (this.scopeClass) {
     //   scope.classList.add(this.scopeClass);
     // }
-    var targets = this.findTargets(scope);
-    if (targets.length > 1) {
-      var anims = [];
-      targets.forEach(function(t) {
-        anims.push(new Animation(target, this.effect, this.timing));
-      }.bind(this));
+    var anims = [];
+    var targets = this.findTargets(options.src);
+    targets.forEach(function(t) {
+      anims.push(new Animation(t, this.srcEffect, this.timing));
+    }.bind(this));
+
+    targets = this.findTargets(options.dst);
+    targets.forEach(function(t) {
+      anims.push(new Animation(t, this.dstEffect, this.timing));
+    }.bind(this));
+
+    if (anims.length > 1) {
       this.animation = new AnimationGroup(anims);
-    } else if (targets.length === 1) {
-      this.animation = new Animation(targets[0], this.effect, this.timing);
+    } else if (anims.length === 1) {
+      this.animation = anims[0];
     } else {
       this.animation = null;
     }
@@ -93,11 +102,11 @@ Polymer({
     return this.animation;
   },
 
-  findTargets: function(scope) {
+  findTargets: function(el) {
     if (!this.targetAttribute) {
       return [];
     }
-    return this.findAllInShadows(scope, '[' + this.targetAttribute + ']');
+    return this.findAllInShadows(el, '[' + this.targetAttribute + ']');
   },
 
   // carefully look into ::shadow with polyfill specific hack
